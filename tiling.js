@@ -8,6 +8,7 @@ const Tweener = imports.ui.tweener;
 const ExtensionUtils = imports.misc.extensionUtils;
 const Extension = ExtensionUtils.getCurrentExtension();
 const Log = Extension.imports.logger.Logger.getLogger("ShellTile");
+const HookSpots = Extension.imports.hookspots.HookSpots;
 const Window = Extension.imports.window.Window;
 const Gdk = imports.gi.Gdk
 
@@ -592,7 +593,7 @@ const DefaultTilingStrategy = function(ext){
 	Main.uiGroup.add_actor(this.preview);
 	var default_modifier = Gdk.Keymap.get_default();
 
-	
+	this.hookspots = new HookSpots(ext);
 
 	this.is_ctrl_pressed = function(){
   	//this.log.debug("Modifier key: " + this.extension.tile_modifier_key);
@@ -648,6 +649,14 @@ const DefaultTilingStrategy = function(ext){
 		var currTime = new Date().getTime();
 		var interval = 200
 		if(!this.lastTime || (currTime - this.lastTime) > interval){
+
+			this.hookspots.showHooks(win);
+
+			var preview_rect = this.hookspots.hitTest(this.get_cursor_rect());
+			if (preview_rect) {
+				this.update_preview(preview_rect);
+				return;
+			}
 
 			if(!win.group){
 
@@ -710,6 +719,16 @@ const DefaultTilingStrategy = function(ext){
 	}
 
 	this.on_window_moved = function(win){
+
+		var preview_rect = this.hookspots.hitTest(this.get_cursor_rect());
+		if (preview_rect) {
+			this.hookspots.hideHooks();
+			this.update_preview(null);
+			win.move_resize(preview_rect.x, preview_rect.y, preview_rect.width, preview_rect.height);
+			return;
+		}
+
+		this.hookspots.hideHooks();
 
 		if(this.__timeout){
 			Mainloop.source_remove(this.__timeout);
